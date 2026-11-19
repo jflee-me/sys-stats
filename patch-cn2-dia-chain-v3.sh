@@ -17,7 +17,9 @@ import sys
 from urllib.parse import urlparse, unquote
 url = open('/tmp/dia-hy2-url').read().strip()
 p = urlparse(url)
-pw = unquote(p.password or '')
+# hysteria2 链接格式：hysteria2://PASSWORD@host:port，密码在 userinfo 位；
+# urlparse 会把它放进 .username（没有冒号分隔），所以优先取 .password、再取 .username
+pw = unquote(p.password or p.username or '')
 print(pw)
 ")"
   echo "密码已从 /tmp/dia-hy2-url 链接提取"
