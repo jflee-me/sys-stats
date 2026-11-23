@@ -1,1 +1,1 @@
-{"machine": "raksmart-annual", "month": "2026-11", "monthRxBytes": 40622339980, "monthTxBytes": 42154588964, "pingMs": 2278, "memPct": 11.5, "diskPct": 8.4, "cpuPct": 0.0, "load": [0.0, 0.0, 0.0], "uptimeS": 1065848, "deviceTs": 1795434325, "ts": "2026-11-23T19:45:22.990139+08:00"}
+{"machine": "raksmart-annual", "month": "2026-11", "monthRxBytes": 40622434074, "monthTxBytes": 42154599562, "pingMs": 167, "memPct": 11.5, "diskPct": 8.4, "cpuPct": 0.0, "load": [0.0, 0.0, 0.0], "uptimeS": 1066128, "deviceTs": 1795434605, "ts": "2026-11-23T19:50:03.062093+08:00"}
