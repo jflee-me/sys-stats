@@ -51,8 +51,8 @@ route = cfg.setdefault('route', {})
 route.pop('geoip', None)
 route.pop('geosite', None)
 # sing-box 1.14 强制要求：出站域名解析须指定 resolver，否则校验 FATAL。
-# 用下面 DNS 里新加的 local（UDP 223.5.5.5 直连），不依赖代理，启动时就能解析。
-route['default_domain_resolver'] = 'local'
+# 用 remote（DoH 223.5.5.5，已在跑、无 detour 问题）。
+route['default_domain_resolver'] = 'remote'
 
 rules = route.setdefault('rules', [])
 # 删掉含已弃用 geosite/geoip 字段的规则，以及旧的 cn 规则集条目（下面会重新加）
@@ -84,7 +84,11 @@ dns = cfg.setdefault('dns', {})
 servers = dns.setdefault('servers', [])
 tags = {s.get('tag') for s in servers}
 if 'local' not in tags:
-    servers.insert(0, {"tag": "local", "type": "udp", "server": "223.5.5.5", "detour": "direct"})
+    # 注意：不要加 "detour": "direct"——sing-box 1.14 里 UDP DNS 带 detour direct
+    # 会直接 FATAL 崩溃（detour to an empty direct outbound makes no sense），
+    # 导致 sing-box 循环重启、tun0 起不来。223.5.5.5 是国内 IP，
+    # 不带 detour 时 DNS 查询会按路由规则走 geoip-cn -> direct，同样直连。
+    servers.insert(0, {"tag": "local", "type": "udp", "server": "223.5.5.5"})
 dns_rules = dns.setdefault('rules', [])
 dns_rules = [r for r in dns_rules
              if 'geosite' not in r and 'geoip' not in r
