@@ -11,9 +11,9 @@ echo "1) 下载网页与 CGI ..."
 curl -fsSL "$BASE/router-switch.html" -o /tmp/router-switch.html
 curl -fsSL "$BASE/switch-final-cgi.sh" -o /tmp/switch-final-cgi.sh
 
-echo "2) 传到路由器 ..."
-scp -q /tmp/router-switch.html "$ROUTER:/www/switch.html"
-scp -q /tmp/switch-final-cgi.sh "$ROUTER:/www/cgi-bin/switch-final"
+echo "2) 传到路由器（路由器没有 sftp-server，scp 用不了，改用 cat | ssh 管道）..."
+cat /tmp/router-switch.html | ssh "$ROUTER" "cat > /www/switch.html"
+cat /tmp/switch-final-cgi.sh | ssh "$ROUTER" "cat > /www/cgi-bin/switch-final"
 ssh "$ROUTER" "chmod +x /www/cgi-bin/switch-final; ls -l /www/switch.html /www/cgi-bin/switch-final"
 
 echo "3) 确认 uhttpd 在跑 ..."
