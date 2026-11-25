@@ -1,7 +1,7 @@
 #!/bin/sh
 # switch-final (CGI) — 旁路由线路切换，供 /www/switch.html 调用
 # 用法：浏览器打开 /cgi-bin/switch-final?final=<tag>
-# 只允许三个值：hostdare-vless / novixlink-vless / novixlink-vless-via-hostdare
+# 只允许四个值：hostdare-vless / novixlink-vless / novixlink-vless-via-hostdare / novixlink-vless-via-raksmart
 # 动作：sed 替换 route.final（只换三个出口值，不动 DNS 的 "remote"），校验，重启 sing-box，补表 100
 CFG="/etc/sing-box/config.json"
 
@@ -25,9 +25,9 @@ echo ""
 
 # 校验
 case "$FINAL" in
-  hostdare-vless|novixlink-vless|novixlink-vless-via-hostdare) ;;
+  hostdare-vless|novixlink-vless|novixlink-vless-via-hostdare|novixlink-vless-via-raksmart) ;;
   *)
-    echo "<html><body><h2>参数不对</h2><p>final 只能是 hostdare-vless / novixlink-vless / novixlink-vless-via-hostdare，收到：$(printf '%s' "$FINAL" | sed 's/[<>&]//g')</p><p><a href=\"/switch.html\">返回</a></p></body></html>"
+    echo "<html><body><h2>参数不对</h2><p>final 只能是 hostdare-vless / novixlink-vless / novixlink-vless-via-hostdare / novixlink-vless-via-raksmart，收到：$(printf '%s' "$FINAL" | sed 's/[<>&]//g')</p><p><a href=\"/switch.html\">返回</a></p></body></html>"
     exit 0
     ;;
 esac
@@ -35,8 +35,8 @@ esac
 # 备份
 cp "$CFG" "/tmp/router-singbox-backup-cgi-$(date +%s).json"
 
-# 只替换 route.final（三个出口值之一），不动 DNS 的 "remote"
-sed -i -E "s/\"final\": \"(novixlink-vless|hostdare-vless|novixlink-vless-via-hostdare)\"/\"final\": \"$FINAL\"/" "$CFG"
+# 只替换 route.final（四个出口值之一），不动 DNS 的 "remote"
+sed -i -E "s/\"final\": \"(novixlink-vless|hostdare-vless|novixlink-vless-via-hostdare|novixlink-vless-via-raksmart)\"/\"final\": \"$FINAL\"/" "$CFG"
 
 # 校验
 if ! sing-box check -c "$CFG" >/tmp/singbox-check.log 2>&1; then
