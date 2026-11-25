@@ -5,7 +5,7 @@
 # 用法：bash /tmp/install-router-switch.sh
 set -e
 ROUTER="root@192.168.5.2"
-BASE="https://cdn.jsdelivr.net/gh/jflee-me/sys-stats@COMMIT_PLACEHOLDER"
+BASE="https://cdn.jsdelivr.net/gh/jflee-me/sys-stats@87fe851fa98b31437c8cf2141cef3dfb188e2ac0"
 
 echo "1) 下载网页与 CGI ..."
 curl -fsSL "$BASE/router-switch.html" -o /tmp/router-switch.html
