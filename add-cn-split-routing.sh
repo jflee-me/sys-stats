@@ -6,10 +6,15 @@
 #   - Mac 全流量走美国代理时微信连不上国内服务器；临时办法是 Mac 改回 DHCP。
 #   - 防火墙已停并禁自启（中兴是主防火墙，AX3600 防火墙不用开）。
 #   - 当前路由只有 ip_is_private -> direct，其余全走 novixlink-vless（final）。
-# 2026-11-25 15:08 修正：SagerNet 最新 release 已不再提供 .srs 规则集文件
-# （geoip-cn.srs / geosite-cn.srs 下 404），改用 .db 数据库文件
-# （geoip.db / geosite.db）＋ route.geoip / route.geosite 配置＋
-# 规则里直接用 "geoip": "cn" / "geosite": "cn" 匹配（sing-box 1.14 支持）。
+# 2026-11-25 15:08 修正一：SagerNet 最新 release 已不再提供 .srs 规则集文件
+# （geoip-cn.srs / geosite-cn.srs 下 404），改用 .db 数据库文件——
+# 但 sing-box 1.14 校验报错：geosite 数据库在 1.8.0 弃用、1.12.0 已移除，
+# 所以 .db 方案行不通。
+# 2026-11-25 15:11 修正二：改用 rule_set（.srs）方案，.srs 文件在
+# SagerNet 仓库的 rule-set 分支上（不在 release 里）：
+#   https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs
+#   https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs
+# 并在打补丁时先清除旧的 geosite/geoip 数据库字段和规则（若上一版已把坏配置写上去了）。
 # 本脚本在 Mac 上运行：先从路由器上拉取“当前正在跑”的配置再改（不套用旧脚本生成的版本，
 # 上午调试时 DNS 写法已在路由器上改过两轮），改完校验、重启、补策略路由、验证。
 # 用法：bash /tmp/add-cn-split-routing.sh
@@ -18,39 +23,52 @@ set -e
 
 ROUTER_IP="192.168.5.2"
 RULE_DIR="/etc/sing-box"
-GEOIP_URL="https://github.com/SagerNet/sing-geoip/releases/latest/download/geoip.db"
-GEOSITE_URL="https://github.com/SagerNet/sing-geosite/releases/latest/download/geosite.db"
+GEOIP_URL="https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs"
+GEOSITE_URL="https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs"
 
 echo "1) 从路由器拉取当前配置..."
 ssh "root@$ROUTER_IP" "cat /etc/sing-box/config.json" > /tmp/router-singbox-live.json
 cp /tmp/router-singbox-live.json /tmp/router-singbox-backup-$(date +%Y%m%d-%H%M).json
 echo "   已备份到 /tmp/router-singbox-backup-*.json"
 
-echo "2) 下载 geoip.db / geosite.db（Mac 上下载，路由器不一定能直连 GitHub）..."
+echo "2) 下载 geoip-cn.srs / geosite-cn.srs（Mac 上下载，路由器不一定能直连 GitHub）..."
 cd /tmp
-curl -fL -o geoip.db "$GEOIP_URL"
-curl -fL -o geosite.db "$GEOSITE_URL"
-ls -l geoip.db geosite.db
+curl -fL -o geoip-cn.srs "$GEOIP_URL"
+curl -fL -o geosite-cn.srs "$GEOSITE_URL"
+ls -l geoip-cn.srs geosite-cn.srs
 
-echo "3) 传数据库到路由器..."
-cat geoip.db | ssh "root@$ROUTER_IP" "cat > $RULE_DIR/geoip.db"
-cat geosite.db | ssh "root@$ROUTER_IP" "cat > $RULE_DIR/geosite.db"
+echo "3) 传规则集到路由器..."
+cat geoip-cn.srs | ssh "root@$ROUTER_IP" "cat > $RULE_DIR/geoip-cn.srs"
+cat geosite-cn.srs | ssh "root@$ROUTER_IP" "cat > $RULE_DIR/geosite-cn.srs"
 
 echo "4) 给配置加分流（只改 route/dns，不动出站节点和已修好的 DNS 写法）..."
 python3 << 'PYEOF'
 import json
 cfg = json.load(open('/tmp/router-singbox-live.json'))
 
-# --- route: 注册 geoip/geosite 数据库，国内域名/IP 走 direct ---
+# --- 先清掉已弃用的 geosite/geoip 数据库字段和规则（上一版若写坏了配置，这里修掉）---
 route = cfg.setdefault('route', {})
-route['geoip'] = {"path": "/etc/sing-box/geoip.db"}
-route['geosite'] = {"path": "/etc/sing-box/geosite.db"}
+route.pop('geoip', None)
+route.pop('geosite', None)
 
 rules = route.setdefault('rules', [])
+# 删掉含已弃用 geosite/geoip 字段的规则，以及旧的 cn 规则集条目（下面会重新加）
+rules = [r for r in rules
+         if 'geosite' not in r and 'geoip' not in r
+         and r.get('rule_set') not in ('geosite-cn', 'geoip-cn')]
+route['rules'] = rules
+
+# --- 注册本地规则集，国内域名/IP 走 direct ---
+rs = route.setdefault('rule_set', [])
+rs = [r for r in rs if r.get('tag') not in ('geoip-cn', 'geosite-cn')]
+route['rule_set'] = rs
+rs.append({"tag": "geoip-cn", "type": "local", "format": "binary", "path": "/etc/sing-box/geoip-cn.srs"})
+rs.append({"tag": "geosite-cn", "type": "local", "format": "binary", "path": "/etc/sing-box/geosite-cn.srs"})
+
 # 插到最前面（private 规则之后、final 之前都行；放最前面最稳）
 new_rules = [
-    {"geosite": "cn", "outbound": "direct"},
-    {"geoip": "cn", "outbound": "direct"},
+    {"rule_set": "geosite-cn", "outbound": "direct"},
+    {"rule_set": "geoip-cn", "outbound": "direct"},
 ]
 for r in reversed(new_rules):
     if r not in rules:
@@ -65,8 +83,12 @@ tags = {s.get('tag') for s in servers}
 if 'local' not in tags:
     servers.insert(0, {"tag": "local", "type": "udp", "server": "223.5.5.5", "detour": "direct"})
 dns_rules = dns.setdefault('rules', [])
-if not any(r.get('geosite') == 'cn' for r in dns_rules):
-    dns_rules.insert(0, {"geosite": "cn", "server": "local"})
+dns_rules = [r for r in dns_rules
+             if 'geosite' not in r and 'geoip' not in r
+             and r.get('rule_set') != 'geosite-cn']
+dns['rules'] = dns_rules
+if not any(r.get('rule_set') == 'geosite-cn' for r in dns_rules):
+    dns_rules.insert(0, {"rule_set": "geosite-cn", "server": "local"})
 # final 保持原来的 remote（若原来没写 final，默认就是最后一条 server；这里不强制改）
 
 json.dump(cfg, open('/tmp/router-singbox-patched.json', 'w'), indent=2, ensure_ascii=False)
