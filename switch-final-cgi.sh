@@ -1,5 +1,5 @@
 #!/bin/sh
-# switch-final (CGI) — 旁路由线路切换，供 /www/switch.html 调用
+# switch-final (CGI) — 旁路由线路切换，供 /cgi-bin/switch-page 调用
 # 用法：浏览器打开 /cgi-bin/switch-final?final=<tag>
 # 只允许四个值：hostdare-vless / novixlink-vless / novixlink-vless-via-hostdare / novixlink-vless-via-raksmart
 # 动作：sed 替换 route.final（只换四个出口值，不动 DNS 的 "remote"），校验，重启 sing-box，补表 100
@@ -27,7 +27,7 @@ echo ""
 case "$FINAL" in
   hostdare-vless|novixlink-vless|novixlink-vless-via-hostdare|novixlink-vless-via-raksmart) ;;
   *)
-    echo "<html><body><h2>参数不对</h2><p>final 只能是 hostdare-vless / novixlink-vless / novixlink-vless-via-hostdare / novixlink-vless-via-raksmart，收到：$(printf '%s' "$FINAL" | sed 's/[<>&]//g')</p><p><a href=\"/switch.html\">返回</a></p></body></html>"
+    echo "<html><body><h2>参数不对</h2><p>final 只能是 hostdare-vless / novixlink-vless / novixlink-vless-via-hostdare / novixlink-vless-via-raksmart，收到：$(printf '%s' "$FINAL" | sed 's/[<>&]//g')</p><p><a href=\"/cgi-bin/switch-page\">返回</a></p></body></html>"
     exit 0
     ;;
 esac
@@ -40,7 +40,7 @@ sed -i -E "s/\"final\": \"(novixlink-vless|hostdare-vless|novixlink-vless-via-ho
 
 # 校验
 if ! sing-box check -c "$CFG" >/tmp/singbox-check.log 2>&1; then
-  echo "<html><body><h2>校验失败，已恢复备份</h2><pre>$(cat /tmp/singbox-check.log | sed 's/[<>&]//g')</pre><p><a href=\"/switch.html\">返回</a></p></body></html>"
+  echo "<html><body><h2>校验失败，已恢复备份</h2><pre>$(cat /tmp/singbox-check.log | sed 's/[<>&]//g')</pre><p><a href=\"/cgi-bin/switch-page\">返回</a></p></body></html>"
   # 恢复最近的备份
   LATEST=$(ls -t /tmp/router-singbox-backup-cgi-*.json 2>/dev/null | head -1)
   [ -n "$LATEST" ] && cp "$LATEST" "$CFG"
@@ -56,4 +56,4 @@ ip rule add iif br-lan table 100 2>/dev/null
 # 读回当前 final（route 的那一个）
 CUR=$(grep -o '"final": "[^"]*"' "$CFG" | tail -1)
 
-echo "<html><body><h2>已切换</h2><p>当前出口：<b>$CUR</b></p><p>手机上开 YouTube / ip.sb 验证一下。</p><p><a href=\"/switch.html\">返回切换页</a></p></body></html>"
+echo "<html><body><h2>已切换</h2><p>当前出口：<b>$CUR</b></p><p>手机上开 YouTube / ip.sb 验证一下。</p><p><a href=\"/cgi-bin/switch-page\">返回切换页</a></p></body></html>"
