@@ -2,7 +2,7 @@
 # switch-final (CGI) — 旁路由线路切换，供 /www/switch.html 调用
 # 用法：浏览器打开 /cgi-bin/switch-final?final=<tag>
 # 只允许四个值：hostdare-vless / novixlink-vless / novixlink-vless-via-hostdare / novixlink-vless-via-raksmart
-# 动作：sed 替换 route.final（只换三个出口值，不动 DNS 的 "remote"），校验，重启 sing-box，补表 100
+# 动作：sed 替换 route.final（只换四个出口值，不动 DNS 的 "remote"），校验，重启 sing-box，补表 100
 CFG="/etc/sing-box/config.json"
 
 urldecode() {
