@@ -1,1 +1,1 @@
-{"machine": "novixlink", "month": "2026-11", "monthRxBytes": 12121148048, "monthTxBytes": 12583821410, "pingMs": 166, "memPct": 31.9, "diskPct": 26.8, "cpuPct": 0.0, "load": [0.0, 0.0, 0.0], "uptimeS": 303031, "deviceTs": 1795715424, "ts": "2026-11-27T01:50:21.891042+08:00"}
+{"machine": "novixlink", "month": "2026-11", "monthRxBytes": 12121190972, "monthTxBytes": 12583846285, "pingMs": 167, "memPct": 32.0, "diskPct": 26.8, "cpuPct": 0.0, "load": [0.0, 0.0, 0.0], "uptimeS": 303331, "deviceTs": 1795715724, "ts": "2026-11-27T01:55:21.904419+08:00"}
